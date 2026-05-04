@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Importação — Custo Completo</title>
+  <meta name="description" content="Calculadora completa de custos de importação com NCM, impostos, câmbio, corredor MG e prévia de saída para Lucro Real Trimestral.">
+  
+  <!-- Mobile & PWA Tags -->
+  <meta name="theme-color" content="#0a0c10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</head>
+<body>
+
+<!-- =============== HEADER =============== -->
+<header class="app-header">
+  <div class="header-content">
+    <div class="logo">
+      <div class="logo-icon">📦</div>
+      <div>
+        <h1>Import Calc</h1>
+        <span>Calculadora de Importação</span>
+      </div>
+    </div>
+    <div class="currency-bar">
+      <div class="currency-badge">
+        <span class="flag">🇺🇸</span>
+        <div><span class="label">USD</span><div class="value" id="usd-rate">—</div></div>
+      </div>
+      <div class="currency-badge">
+        <span class="flag">🇪🇺</span>
+        <div><span class="label">EUR</span><div class="value" id="eur-rate">—</div></div>
+      </div>
+      <button class="btn-refresh" id="btn-refresh-currency" title="Atualizar Câmbio">🔄</button>
+      <span class="last-update" id="last-update"></span>
+    </div>
+  </div>
+</header>
+
+<main class="app-main">
+
+  <!-- =============== SEÇÃO 1: MOEDA E CÂMBIO =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <h2>Moeda e Câmbio</h2>
+      <span class="section-icon">💱</span>
+    </div>
+    <div class="form-grid form-grid-4">
+      <div class="form-group">
+        <label>Moeda de Entrada</label>
+        <select id="select-moeda" class="calc-input">
+          <option value="USD" selected>USD — Dólar Americano</option>
+          <option value="EUR">EUR — Euro</option>
+          <option value="BRL">BRL — Real (sem conversão)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Câmbio USD (manual)</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" step="0.0001" id="manual-usd" placeholder="5.7000">
+          <button class="btn btn-sm btn-secondary" id="btn-apply-usd">OK</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Câmbio EUR (manual)</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" step="0.0001" id="manual-eur" placeholder="6.2000">
+          <button class="btn btn-sm btn-secondary" id="btn-apply-eur">OK</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Moeda selecionada</label>
+        <div class="computed-value"><span class="currency-label">USD</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SEÇÃO 2: PRODUTO E NCM =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <h2>Dados do Produto / NCM</h2>
+      <span class="section-icon">🏷️</span>
+    </div>
+
+    <!-- NCM Search -->
+    <div class="form-grid form-grid-2" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Buscar NCM (código ou descrição)</label>
+        <div class="ncm-search-wrapper">
+          <input type="text" id="ncm-search" placeholder="Ex: 8471.30 ou notebook" autocomplete="off">
+          <div class="ncm-results" id="ncm-results"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descrição NCM</label>
+        <div class="computed-value" id="ncm-desc" style="min-height:40px;font-size:13px;font-weight:500">Selecione um NCM...</div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div id="ncm-alerts" class="alerts-container"></div>
+
+    <!-- Tax rates -->
+    <div class="form-grid form-grid-4" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>II (%)</label>
+        <input type="number" step="0.01" id="aliq-ii" class="calc-input" value="0" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>IPI (%)</label>
+        <input type="number" step="0.01" id="aliq-ipi" class="calc-input" value="0" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>PIS-Importação (%)</label>
+        <input type="number" step="0.01" id="aliq-pis" class="calc-input" value="2.10" placeholder="2.10">
+      </div>
+      <div class="form-group">
+        <label>COFINS-Importação (%)</label>
+        <input type="number" step="0.01" id="aliq-cofins" class="calc-input" value="9.65" placeholder="9.65">
+      </div>
+    </div>
+
+    <!-- Product data -->
+    <div class="form-grid form-grid-4">
+      <div class="form-group form-span-2">
+        <label>Descrição do Produto</label>
+        <input type="text" id="desc-produto" placeholder="Descrição comercial do produto">
+      </div>
+      <div class="form-group">
+        <label>Quantidade</label>
+        <input type="number" step="1" id="quantidade" class="calc-input" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Unidade</label>
+        <select id="unidade">
+          <option value="un">Unidade (un)</option>
+          <option value="kg">Quilograma (kg)</option>
+          <option value="m">Metro (m)</option>
+          <option value="m²">Metro² (m²)</option>
+          <option value="m³">Metro³ (m³)</option>
+          <option value="l">Litro (l)</option>
+          <option value="par">Par</option>
+          <option value="cx">Caixa (cx)</option>
+          <option value="pc">Peça (pc)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor Unitário (<span class="currency-label">USD</span>)</label>
+        <input type="number" step="0.01" id="valor-unitario" class="calc-input" value="0" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Valor Total (<span class="currency-label">USD</span>)</label>
+        <input type="text" id="valor-total" disabled value="0,00">
+      </div>
+      <div class="form-group">
+        <label>Peso Bruto (kg)</label>
+        <input type="number" step="0.01" id="peso-bruto" class="calc-input" value="0" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Peso Líquido (kg)</label>
+        <input type="number" step="0.01" id="peso-liquido" class="calc-input" value="0" placeholder="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SEÇÃO 3: VALOR ADUANEIRO =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <h2>Valor Aduaneiro (CIF)</h2>
+      <span class="section-icon">🚢</span>
+    </div>
+    <div class="form-grid form-grid-4">
+      <div class="form-group">
+        <label>Frete Internacional (<span class="currency-label">USD</span>)</label>
+        <input type="number" step="0.01" id="frete-internacional" class="calc-input" value="0">
+      </div>
+      <div class="form-group">
+        <label>Seguro Internacional (<span class="currency-label">USD</span>)</label>
+        <input type="number" step="0.01" id="seguro" class="calc-input" value="0">
+      </div>
+      <div class="form-group">
+        <label>Tipo de Frete</label>
+        <select id="tipo-frete" class="calc-input">
+          <option value="maritimo">Marítimo</option>
+          <option value="aereo">Aéreo</option>
+          <option value="rodoviario">Rodoviário</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nº de Adições (DI)</label>
+        <input type="number" step="1" id="num-adicoes" class="calc-input" value="1" min="1">
+      </div>
+    </div>
+    <div class="form-grid form-grid-2" style="margin-top:16px">
+      <div class="form-group">
+        <label>ICMS Estado de Entrada (%)</label>
+        <input type="number" step="0.01" id="aliq-icms" class="calc-input" value="18">
+      </div>
+      <div class="form-group">
+        <label>Valor Aduaneiro (BRL)</label>
+        <div class="computed-value gold" id="res-va">R$ 0,00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SEÇÃO 4: CONTÊINERES =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <h2>Contêineres — Peso Limite</h2>
+      <span class="section-icon">🚛</span>
+    </div>
+    <div class="container-grid" id="container-grid"></div>
+    <div id="weight-alert" style="margin-top:12px"></div>
+    <div id="weight-progress" class="progress-bar" style="margin-top:8px">
+      <div class="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- =============== SEÇÃO 5: IMPOSTOS DE IMPORTAÇÃO =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">5</div>
+      <h2>Impostos de Importação</h2>
+      <span class="section-icon">🏛️</span>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr><th>Imposto</th><th class="text-right">Valor (R$)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>II — Imposto de Importação</td><td class="text-right" id="res-ii">R$ 0,00</td></tr>
+        <tr><td>IPI — Imposto sobre Produtos Industrializados</td><td class="text-right" id="res-ipi">R$ 0,00</td></tr>
+        <tr><td>PIS-Importação</td><td class="text-right" id="res-pis">R$ 0,00</td></tr>
+        <tr><td>COFINS-Importação</td><td class="text-right" id="res-cofins">R$ 0,00</td></tr>
+        <tr><td>ICMS <span style="font-size:11px;color:var(--text-muted)">(a pagar)</span></td><td class="text-right" id="res-icms">R$ 0,00</td></tr>
+        <tr><td>AFRMM (25% frete marítimo)</td><td class="text-right" id="res-afrmm">R$ 0,00</td></tr>
+        <tr><td>Taxa Siscomex</td><td class="text-right" id="res-siscomex">R$ 0,00</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Corredor MG info -->
+    <div id="corredor-info" style="display:none;margin-top:16px">
+      <h3 style="font-family:'Outfit',sans-serif;font-size:15px;margin-bottom:12px;color:var(--gold)">🏭 Benefício Corredor de Importação MG</h3>
+      <table class="data-table">
+        <tr><td>ICMS Cheio (sem benefício)</td><td class="text-right" id="res-icms-cheio">R$ 0,00</td></tr>
+        <tr class="highlight-row"><td>ICMS Diferido</td><td class="text-right" id="res-icms-diferido">R$ 0,00</td></tr>
+        <tr><td>Crédito Presumido</td><td class="text-right" id="res-credito-presumido">R$ 0,00</td></tr>
+        <tr class="total-row"><td>💰 Economia Total</td><td class="text-right" id="res-economia">R$ 0,00</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- =============== SEÇÃO 6: CORREDOR MG =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">6</div>
+      <h2>Corredor de Importação — Minas Gerais</h2>
+      <span class="section-icon">🏭</span>
+    </div>
+    <div class="toggle-wrapper" style="margin-bottom:16px">
+      <div class="toggle" id="toggle-corredor"></div>
+      <span class="toggle-label">Ativar benefício Corredor de Importação MG (ICMS diferido)</span>
+    </div>
+    <div id="corredor-fields" class="form-grid form-grid-2" style="display:none">
+      <div class="form-group">
+        <label>Percentual de Diferimento ICMS (%)</label>
+        <input type="number" step="1" id="perc-diferimento" class="calc-input" value="100" min="0" max="100">
+      </div>
+      <div class="form-group">
+        <label>Crédito Presumido (%)</label>
+        <input type="number" step="0.01" id="perc-credito" class="calc-input" value="0" min="0">
+      </div>
+    </div>
+    <div class="alert alert-info" style="margin-top:8px">
+      <span class="alert-icon">ℹ️</span>
+      <span>O benefício do Corredor de Importação de MG prevê o diferimento do ICMS na entrada. Os percentuais variam conforme o Regime Especial (TTS) da empresa. Consulte seu contador para os valores exatos.</span>
+    </div>
+  </div>
+
+  <!-- =============== SEÇÃO 7: DESPESAS ACESSÓRIAS =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">7</div>
+      <h2>Despesas Acessórias</h2>
+      <span class="section-icon">📋</span>
+    </div>
+    <div id="despesas-container"></div>
+    <button class="btn btn-secondary" onclick="App.addDespesa()" style="margin-top:8px">
+      ➕ Adicionar Despesa
+    </button>
+  </div>
+
+  <!-- =============== SEÇÃO 8: CUSTO TOTAL =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">8</div>
+      <h2>Custo Total de Importação</h2>
+      <span class="section-icon">💰</span>
+    </div>
+
+    <button class="btn btn-primary btn-lg" onclick="App.recalcular()" style="margin-bottom:20px;width:100%;justify-content:center">
+      🔄 Calcular / Atualizar
+    </button>
+
+    <table class="data-table" style="margin-bottom:20px">
+      <tbody>
+        <tr><td>Valor da Mercadoria (CIF em BRL)</td><td class="text-right" id="res-valor-merc">R$ 0,00</td></tr>
+        <tr><td>Total de Impostos</td><td class="text-right" id="res-total-impostos">R$ 0,00</td></tr>
+        <tr><td>Total Despesas Acessórias</td><td class="text-right" id="res-total-despesas">R$ 0,00</td></tr>
+        <tr class="total-row"><td><strong>CUSTO TOTAL</strong></td><td class="text-right" id="res-custo-total">R$ 0,00</td></tr>
+        <tr class="highlight-row"><td><strong>⭐ CUSTO UNITÁRIO</strong></td><td class="text-right" id="res-custo-unitario">R$ 0,00</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Chart -->
+    <h3 style="font-family:'Outfit',sans-serif;font-size:15px;margin-bottom:12px;color:var(--text-bright)">Composição do Custo</h3>
+    <div class="chart-bars" id="cost-chart">
+      <div style="text-align:center;color:var(--text-muted);padding:20px">Preencha os dados acima para visualizar o gráfico</div>
+    </div>
+  </div>
+
+  <!-- =============== SEÇÃO 9: IMPOSTOS DE SAÍDA =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">9</div>
+      <h2>Prévia de Impostos de Saída — Lucro Real Trimestral</h2>
+      <span class="section-icon">📊</span>
+    </div>
+
+    <div class="form-grid form-grid-4" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Preço Venda Unit. (RJ) — R$</label>
+        <input type="number" step="0.01" id="preco-venda-rj" class="calc-input" value="0" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label>Preço Venda Unit. (SP) — R$</label>
+        <input type="number" step="0.01" id="preco-venda-sp" class="calc-input" value="0" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label>Crédito Presumido Saída (%)</label>
+        <input type="number" step="0.01" id="perc-credito-saida" class="calc-input" value="2.5" placeholder="2.5">
+      </div>
+      <div class="form-group" style="justify-content:end">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="conteudo-importado" checked class="calc-input" style="width:18px;height:18px">
+          Conteúdo imp. &gt; 40% (4%)
+        </label>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="rj">🏖️ Rio de Janeiro</button>
+      <button class="tab" data-tab="sp">🏙️ São Paulo</button>
+    </div>
+
+    <!-- Tab RJ -->
+    <div class="tab-content active" id="tab-rj">
+      <table class="data-table">
+        <thead><tr><th>Item</th><th class="text-right">Valor</th></tr></thead>
+        <tbody>
+          <tr><td>Receita Bruta</td><td class="text-right" id="res-rj-receita">R$ 0,00</td></tr>
+          <tr><td>ICMS Interestadual Bruto (<span id="res-rj-icms-aliq">—</span>)</td><td class="text-right" id="res-rj-icms-bruto">R$ 0,00</td></tr>
+          <tr class="highlight-row"><td>(-) Crédito Presumido Saída (<span id="res-rj-perc-credito">—</span>)</td><td class="text-right" id="res-rj-credito-saida">R$ 0,00</td></tr>
+          <tr><td><strong>ICMS Efetivo a Pagar</strong></td><td class="text-right" id="res-rj-icms">R$ 0,00</td></tr>
+          <tr><td>DIFAL (<span id="res-rj-difal-aliq">—</span>)</td><td class="text-right" id="res-rj-difal">R$ 0,00</td></tr>
+          <tr><td>PIS a pagar (1,65% - créditos)</td><td class="text-right" id="res-rj-pis">R$ 0,00</td></tr>
+          <tr><td>COFINS a pagar (7,60% - créditos)</td><td class="text-right" id="res-rj-cofins">R$ 0,00</td></tr>
+          <tr><td>IRPJ (15% + adicional 10%)</td><td class="text-right" id="res-rj-irpj">R$ 0,00</td></tr>
+          <tr><td>CSLL (9%)</td><td class="text-right" id="res-rj-csll">R$ 0,00</td></tr>
+          <tr class="total-row"><td><strong>Total Impostos Saída</strong></td><td class="text-right" id="res-rj-total">R$ 0,00</td></tr>
+          <tr class="highlight-row"><td><strong>Lucro Líquido Estimado</strong></td><td class="text-right" id="res-rj-lucro">R$ 0,00</td></tr>
+          <tr><td>Margem Líquida</td><td class="text-right" id="res-rj-margem">0,00%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab SP -->
+    <div class="tab-content" id="tab-sp">
+      <table class="data-table">
+        <thead><tr><th>Item</th><th class="text-right">Valor</th></tr></thead>
+        <tbody>
+          <tr><td>Receita Bruta</td><td class="text-right" id="res-sp-receita">R$ 0,00</td></tr>
+          <tr><td>ICMS Interestadual Bruto (<span id="res-sp-icms-aliq">—</span>)</td><td class="text-right" id="res-sp-icms-bruto">R$ 0,00</td></tr>
+          <tr class="highlight-row"><td>(-) Crédito Presumido Saída (<span id="res-sp-perc-credito">—</span>)</td><td class="text-right" id="res-sp-credito-saida">R$ 0,00</td></tr>
+          <tr><td><strong>ICMS Efetivo a Pagar</strong></td><td class="text-right" id="res-sp-icms">R$ 0,00</td></tr>
+          <tr><td>DIFAL (<span id="res-sp-difal-aliq">—</span>)</td><td class="text-right" id="res-sp-difal">R$ 0,00</td></tr>
+          <tr><td>PIS a pagar (1,65% - créditos)</td><td class="text-right" id="res-sp-pis">R$ 0,00</td></tr>
+          <tr><td>COFINS a pagar (7,60% - créditos)</td><td class="text-right" id="res-sp-cofins">R$ 0,00</td></tr>
+          <tr><td>IRPJ (15% + adicional 10%)</td><td class="text-right" id="res-sp-irpj">R$ 0,00</td></tr>
+          <tr><td>CSLL (9%)</td><td class="text-right" id="res-sp-csll">R$ 0,00</td></tr>
+          <tr class="total-row"><td><strong>Total Impostos Saída</strong></td><td class="text-right" id="res-sp-total">R$ 0,00</td></tr>
+          <tr class="highlight-row"><td><strong>Lucro Líquido Estimado</strong></td><td class="text-right" id="res-sp-lucro">R$ 0,00</td></tr>
+          <tr><td>Margem Líquida</td><td class="text-right" id="res-sp-margem">0,00%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =============== SEÇÃO 10: IMPRESSÃO =============== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">10</div>
+      <h2>Relatório e Impressão</h2>
+      <span class="section-icon">🖨️</span>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card accent">
+        <div class="sc-label">Custo Total</div>
+        <div class="sc-value" id="sum-custo-total">R$ 0,00</div>
+      </div>
+      <div class="summary-card gold">
+        <div class="sc-label">Custo Unitário</div>
+        <div class="sc-value" id="sum-custo-unit">R$ 0,00</div>
+      </div>
+      <div class="summary-card success">
+        <div class="sc-label">Total Impostos</div>
+        <div class="sc-value" id="sum-impostos">R$ 0,00</div>
+      </div>
+    </div>
+    <div class="print-actions">
+      <button class="btn btn-gold btn-lg" id="btn-print">
+        🖨️ Imprimir Relatório Completo
+      </button>
+    </div>
+    <div class="alert alert-info" style="margin-top:16px">
+      <span class="alert-icon">ℹ️</span>
+      <span>O relatório inclui todos os custos de entrada, impostos, despesas acessórias, custo unitário e prévia de impostos de saída para RJ e SP (Lucro Real Trimestral).</span>
+    </div>
+  </div>
+
+</main>
+
+<!-- Scripts -->
+<script src="js/ncm-database.js"></script>
+<script src="js/containers.js"></script>
+<script src="js/currency.js"></script>
+<script src="js/tax-calculator.js"></script>
+<script src="js/alerts.js"></script>
+<script src="js/print.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
