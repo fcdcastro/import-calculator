@@ -9,20 +9,20 @@
   --bg-card: rgba(15, 23, 42, 0.7);
   --bg-card-hover: rgba(20, 30, 55, 0.8);
   --bg-input: rgba(15, 23, 42, 0.9);
-  --border-color: rgba(59, 130, 246, 0.15);
-  --border-hover: rgba(59, 130, 246, 0.35);
-  --accent: #3b82f6;
-  --accent-light: #60a5fa;
-  --accent-glow: rgba(59, 130, 246, 0.25);
-  --gold: #f59e0b;
-  --gold-light: #fbbf24;
+  --border-color: rgba(243, 146, 0, 0.15); /* Laranja Suppliers */
+  --border-hover: rgba(243, 146, 0, 0.35);
+  --accent: #F39200;       /* Laranja Suppliers */
+  --accent-light: #ffac33;
+  --accent-glow: rgba(243, 146, 0, 0.25);
+  --gold: #005C9E;         /* Azul Suppliers (usado para labels de valor) */
+  --gold-light: #3385cc;
   --danger: #ef4444;
   --danger-bg: rgba(239, 68, 68, 0.1);
-  --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.1);
-  --success: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.1);
-  --info-bg: rgba(59, 130, 246, 0.1);
+  --warning: #F39200;
+  --warning-bg: rgba(243, 146, 0, 0.1);
+  --success: #009B3A;      /* Verde do Logo */
+  --success-bg: rgba(0, 155, 58, 0.1);
+  --info-bg: rgba(0, 92, 158, 0.1);
   --text-primary: #e2e8f0;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
